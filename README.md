@@ -5,6 +5,11 @@
 **NASA Space Apps Challenge 2026: Be An Earth System Trend Detective**
 Team StrataSight: Muhammad Arslan Toor (AI Engineer and Researcher) and Fatima Noor (Data Analyst and Researcher)
 
+| | |
+| --- | --- |
+| **Live website** | https://strataspace-53330586668.europe-west1.run.app/ |
+| **Demo video** | https://drive.google.com/file/d/1xGg-dn9Nke7Y1er3APf62zOYXhamSpOP/view?usp=drive_link |
+
 StrataSight turns decades of real NASA and partner agency observations into clear, trustworthy answers about environmental change. A user asks a plain question such as "Is it getting hotter?" or "Are soils drying out?", chooses a place, and receives a verdict, a chart, a map, satellite imagery and a statistical report, all explained in everyday language.
 
 ---
