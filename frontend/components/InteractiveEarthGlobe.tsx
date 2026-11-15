@@ -173,8 +173,8 @@ const ORBIT_SPEEDUP = 60;
 const HOME_ALTITUDE_M = 13_500_000;
 const MIN_ZOOM_M = 150_000;
 const MAX_ZOOM_M = 45_000_000;
-/** Colour shown where a tile has not arrived yet: a soft ocean blue that matches the page theme. */
-const GLOBE_BASE = '#7dd3fc';
+/** Colour shown where a tile has not arrived yet: a deep NASA blue. */
+const GLOBE_BASE = '#0a2a4c';
 
 /** A point on a circular orbit, in Earth-fixed metres (schematic: the ring does not rotate with the planet). */
 function orbitPoint(sat: NasaSatelliteData, index: number, theta: number): Cartesian3 {
@@ -280,9 +280,6 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
         infoBox: false,
         selectionIndicator: false,
         scene3DOnly: true,
-        skyBox: false,
-        // A see-through canvas lets the page gradient show behind the planet
-        contextOptions: { webgl: { alpha: true } },
         creditContainer: creditRef.current ?? undefined
       });
     } catch {
@@ -291,12 +288,8 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
     }
     viewerRef.current = viewer;
     const scene = viewer.scene;
-    scene.backgroundColor = Color.TRANSPARENT;
-    // The default atmosphere glow blends to black over a see-through canvas, so it is switched off
-    if (scene.skyAtmosphere) scene.skyAtmosphere.show = false;
-    scene.globe.showGroundAtmosphere = false;
-    if (scene.sun) scene.sun.show = false;
-    if (scene.moon) scene.moon.show = false;
+    // Deep space: the default Cesium starfield and atmosphere glow stay on
+    scene.backgroundColor = Color.BLACK;
     scene.globe.baseColor = Color.fromCssColorString(GLOBE_BASE);
     scene.globe.enableLighting = false;
     scene.postProcessStages.fxaa.enabled = true;
@@ -332,9 +325,9 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
         label: {
           text: sat.name.split(' (')[0],
           font: '600 11px Inter, system-ui, sans-serif',
-          fillColor: Color.fromCssColorString('#0f172a'),
-          outlineColor: Color.WHITE,
-          outlineWidth: 4,
+          fillColor: Color.WHITE,
+          outlineColor: Color.BLACK,
+          outlineWidth: 3,
           style: LabelStyle.FILL_AND_OUTLINE,
           horizontalOrigin: HorizontalOrigin.LEFT,
           verticalOrigin: VerticalOrigin.CENTER,
@@ -343,7 +336,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
       });
       sats.entities.add({
         id: `orbit:${sat.id}`,
-        polyline: { positions: ring, width: 2, arcType: ArcType.NONE, material: color }
+        polyline: { positions: ring, width: 1.6, arcType: ArcType.NONE, material: color.withAlpha(0.6) }
       });
     });
 
@@ -633,13 +626,13 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
         isFullscreen ? 'fixed inset-0 z-50 rounded-none h-screen' : ''
       }`}
     >
-      <div className={`relative w-full bg-gradient-to-br from-sky-100 via-white to-indigo-100 ${isFullscreen ? 'flex-1 min-h-0' : 'h-[520px] sm:h-[600px]'}`}>
+      <div className={`relative w-full bg-black ${isFullscreen ? 'flex-1 min-h-0' : 'h-[520px] sm:h-[600px]'}`}>
       {/* CesiumJS globe mounts here */}
       <div ref={mountRef} className="w-full h-full block select-none" />
 
       {/* TOP LEFT: Telemetry HUD */}
       <div className="absolute top-4 left-4 z-20 pointer-events-none">
-        <div className="flex items-center space-x-2.5 bg-white/85 backdrop-blur-xl px-3.5 py-2 rounded-xl border border-sky-200 shadow-card">
+        <div className="flex items-center space-x-2.5 bg-white/95 backdrop-blur-xl px-3.5 py-2 rounded-xl border border-sky-200 shadow-card">
           <Globe2 className={`w-4 h-4 text-sky-600 origin-center ${texState.status === 'loading' ? 'animate-spin' : ''}`} />
           <div>
             <div className="text-[11px] font-semibold text-slate-900 tracking-tight">
@@ -655,7 +648,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
       </div>
 
       {/* TOP RIGHT: NASA layer switcher */}
-      <div className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-1.5 bg-white/90 backdrop-blur-xl p-1.5 rounded-2xl border border-sky-200 shadow-card max-w-xl justify-end">
+      <div className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-1.5 bg-white/95 backdrop-blur-xl p-1.5 rounded-2xl border border-sky-200 shadow-card max-w-xl justify-end">
         {(['live', 'bluemarble', 'night'] as GlobeLayerMode[]).map(k => {
           const l = layerInfo(k);
           const Icon = k === 'night' ? Moon : Globe2;
@@ -721,7 +714,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
 
       {/* BOTTOM LEFT: Hotspot Quick Jumper */}
       <div className="absolute bottom-4 left-4 z-20 flex flex-wrap items-center gap-2 max-w-lg">
-        <div className="bg-white/90 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-sky-200 shadow-card text-xs flex items-center space-x-2">
+        <div className="bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-sky-200 shadow-card text-xs flex items-center space-x-2">
           <MapPin className="w-3.5 h-3.5 text-amber-600" />
           <span className="text-[11px] text-slate-600 font-medium">Quick Fly-To:</span>
           <select
@@ -742,7 +735,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
       </div>
 
       {/* BOTTOM RIGHT: Minimalist Controls */}
-      <div className="absolute bottom-4 right-4 z-20 flex items-center space-x-1.5 bg-white/90 backdrop-blur-xl p-1.5 rounded-xl border border-sky-200 shadow-card">
+      <div className="absolute bottom-4 right-4 z-20 flex items-center space-x-1.5 bg-white/95 backdrop-blur-xl p-1.5 rounded-xl border border-sky-200 shadow-card">
         <button
           onClick={() => setAutoRotate(!autoRotate)}
           className={`p-2 rounded-lg text-xs transition-colors ${
@@ -826,7 +819,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
       )}
 
       {/* Bottom Control Instruction */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none text-[11px] text-slate-700 bg-white/85 backdrop-blur-md px-3.5 py-1 rounded-full border border-sky-200 hidden xl:block">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none text-[11px] text-slate-700 bg-white/95 backdrop-blur-md px-3.5 py-1 rounded-full border border-sky-200 hidden xl:block">
         Drag to rotate • Scroll to zoom • Click beacons or satellites to inspect
       </div>
       </div>
