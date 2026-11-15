@@ -173,7 +173,8 @@ const ORBIT_SPEEDUP = 60;
 const HOME_ALTITUDE_M = 13_500_000;
 const MIN_ZOOM_M = 150_000;
 const MAX_ZOOM_M = 45_000_000;
-const NASA_BLUE = '#0a2a4c';
+/** Colour shown where a tile has not arrived yet: a soft ocean blue that matches the page theme. */
+const GLOBE_BASE = '#7dd3fc';
 
 /** A point on a circular orbit, in Earth-fixed metres (schematic: the ring does not rotate with the planet). */
 function orbitPoint(sat: NasaSatelliteData, index: number, theta: number): Cartesian3 {
@@ -279,6 +280,9 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
         infoBox: false,
         selectionIndicator: false,
         scene3DOnly: true,
+        skyBox: false,
+        // A see-through canvas lets the page gradient show behind the planet
+        contextOptions: { webgl: { alpha: true } },
         creditContainer: creditRef.current ?? undefined
       });
     } catch {
@@ -287,8 +291,13 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
     }
     viewerRef.current = viewer;
     const scene = viewer.scene;
-    scene.backgroundColor = Color.BLACK;
-    scene.globe.baseColor = Color.fromCssColorString(NASA_BLUE);
+    scene.backgroundColor = Color.TRANSPARENT;
+    // The default atmosphere glow blends to black over a see-through canvas, so it is switched off
+    if (scene.skyAtmosphere) scene.skyAtmosphere.show = false;
+    scene.globe.showGroundAtmosphere = false;
+    if (scene.sun) scene.sun.show = false;
+    if (scene.moon) scene.moon.show = false;
+    scene.globe.baseColor = Color.fromCssColorString(GLOBE_BASE);
     scene.globe.enableLighting = false;
     scene.postProcessStages.fxaa.enabled = true;
     const camCtl = scene.screenSpaceCameraController;
@@ -323,9 +332,9 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
         label: {
           text: sat.name.split(' (')[0],
           font: '600 11px Inter, system-ui, sans-serif',
-          fillColor: Color.WHITE,
-          outlineColor: Color.BLACK,
-          outlineWidth: 3,
+          fillColor: Color.fromCssColorString('#0f172a'),
+          outlineColor: Color.WHITE,
+          outlineWidth: 4,
           style: LabelStyle.FILL_AND_OUTLINE,
           horizontalOrigin: HorizontalOrigin.LEFT,
           verticalOrigin: VerticalOrigin.CENTER,
@@ -334,7 +343,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
       });
       sats.entities.add({
         id: `orbit:${sat.id}`,
-        polyline: { positions: ring, width: 1.4, arcType: ArcType.NONE, material: color.withAlpha(0.45) }
+        polyline: { positions: ring, width: 2, arcType: ArcType.NONE, material: color }
       });
     });
 
@@ -620,23 +629,23 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
   return (
     <div
       ref={globeContainerRef}
-      className={`relative w-full rounded-2xl overflow-hidden bg-surface-950 border border-sky-500/30 ring-1 ring-inset ring-white/10 shadow-2xl transition-all flex flex-col ${
+      className={`relative w-full rounded-2xl overflow-hidden bg-white border border-sky-200 ring-1 ring-inset ring-white/80 shadow-card transition-all flex flex-col ${
         isFullscreen ? 'fixed inset-0 z-50 rounded-none h-screen' : ''
       }`}
     >
-      <div className={`relative w-full ${isFullscreen ? 'flex-1 min-h-0' : 'h-[520px] sm:h-[600px]'}`}>
+      <div className={`relative w-full bg-gradient-to-br from-sky-100 via-white to-indigo-100 ${isFullscreen ? 'flex-1 min-h-0' : 'h-[520px] sm:h-[600px]'}`}>
       {/* CesiumJS globe mounts here */}
       <div ref={mountRef} className="w-full h-full block select-none" />
 
       {/* TOP LEFT: Telemetry HUD */}
       <div className="absolute top-4 left-4 z-20 pointer-events-none">
-        <div className="flex items-center space-x-2.5 bg-surface-900/80 backdrop-blur-xl px-3.5 py-2 rounded-xl border border-slate-700/80 shadow-lg">
-          <Globe2 className={`w-4 h-4 text-blue-400 origin-center ${texState.status === 'loading' ? 'animate-spin' : ''}`} />
+        <div className="flex items-center space-x-2.5 bg-white/85 backdrop-blur-xl px-3.5 py-2 rounded-xl border border-sky-200 shadow-card">
+          <Globe2 className={`w-4 h-4 text-sky-600 origin-center ${texState.status === 'loading' ? 'animate-spin' : ''}`} />
           <div>
-            <div className="text-[11px] font-semibold text-white tracking-tight">
+            <div className="text-[11px] font-semibold text-slate-900 tracking-tight">
               NASA imagery · {info.label}
             </div>
-            <div className="text-[10px] text-slate-400 font-mono">
+            <div className="text-[10px] text-slate-600 font-mono">
               {texState.status === 'loading'
                 ? 'Loading from NASA GIBS…'
                 : `Target: ${formatCoords(pickedCoordinates.lat, pickedCoordinates.lon, 1)}`}
@@ -646,7 +655,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
       </div>
 
       {/* TOP RIGHT: NASA layer switcher */}
-      <div className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-1.5 bg-surface-900/90 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-700/80 shadow-xl max-w-xl justify-end">
+      <div className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-1.5 bg-white/90 backdrop-blur-xl p-1.5 rounded-2xl border border-sky-200 shadow-card max-w-xl justify-end">
         {(['live', 'bluemarble', 'night'] as GlobeLayerMode[]).map(k => {
           const l = layerInfo(k);
           const Icon = k === 'night' ? Moon : Globe2;
@@ -656,7 +665,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
               onClick={() => setActiveLayer(k)}
               aria-pressed={activeLayer === k}
               className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center space-x-1.5 transition-all ${
-                activeLayer === k ? 'bg-blue-600 text-white shadow-sm ring-1 ring-white/10' : 'text-slate-300 hover:text-white hover:bg-surface-800'
+                activeLayer === k ? 'bg-blue-600 text-white shadow-sm ring-1 ring-white/10' : 'text-slate-700 hover:text-slate-900 hover:bg-sky-50'
               }`}
               title={`${l.label}: ${l.sensor}`}
             >
@@ -668,7 +677,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
 
         <label
           className={`flex items-center space-x-1.5 pl-2.5 pr-1.5 py-1 rounded-xl text-xs border transition-colors ${
-            DATA_LAYER_KEYS.includes(activeLayer) ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-700 text-slate-300'
+            DATA_LAYER_KEYS.includes(activeLayer) ? 'bg-blue-600 border-blue-500 text-white' : 'border-sky-200 text-slate-700 bg-white/70'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -678,9 +687,9 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
             onChange={e => e.target.value && setActiveLayer(e.target.value as GlobeLayerMode)}
             className="bg-transparent focus:outline-none cursor-pointer text-xs font-medium max-w-[9.5rem]"
           >
-            <option value="" className="bg-surface-950 text-white">Data layers…</option>
+            <option value="" className="bg-white text-slate-900">Data layers…</option>
             {DATA_LAYER_KEYS.map(k => (
-              <option key={k} value={k} className="bg-surface-950 text-white">
+              <option key={k} value={k} className="bg-white text-slate-900">
                 {layerInfo(k).label}
               </option>
             ))}
@@ -691,8 +700,8 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
           onClick={() => setShowSatellites(!showSatellites)}
           className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center space-x-1.5 transition-all border ${
             showSatellites
-              ? 'bg-blue-600/20 text-blue-300 border-blue-500/30'
-              : 'text-slate-400 border-slate-700 hover:bg-surface-800'
+              ? 'bg-blue-50 text-blue-700 border-blue-300'
+              : 'text-slate-600 border-sky-200 hover:bg-sky-50'
           }`}
           title="Show the NASA satellites' orbits (schematic)"
         >
@@ -702,7 +711,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
 
         <button
           onClick={() => setIsFullscreen(!isFullscreen)}
-          className="p-1.5 rounded-xl bg-surface-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition-colors"
+          className="p-1.5 rounded-xl bg-white hover:bg-sky-50 text-slate-700 border border-sky-200 transition-colors"
           title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Globe'}
           aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen globe'}
         >
@@ -712,19 +721,19 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
 
       {/* BOTTOM LEFT: Hotspot Quick Jumper */}
       <div className="absolute bottom-4 left-4 z-20 flex flex-wrap items-center gap-2 max-w-lg">
-        <div className="bg-surface-900/90 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-slate-700/80 text-xs flex items-center space-x-2">
-          <MapPin className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-[11px] text-slate-400 font-medium">Quick Fly-To:</span>
+        <div className="bg-white/90 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-sky-200 shadow-card text-xs flex items-center space-x-2">
+          <MapPin className="w-3.5 h-3.5 text-amber-600" />
+          <span className="text-[11px] text-slate-600 font-medium">Quick Fly-To:</span>
           <select
             value={selectedRegion.id}
             onChange={e => {
               const r = PLANETARY_HOTSPOTS.find(item => item.id === e.target.value);
               if (r) onSelectRegion(r);
             }}
-            className="bg-transparent text-white font-medium focus:outline-none cursor-pointer text-xs"
+            className="bg-transparent text-slate-900 font-medium focus:outline-none cursor-pointer text-xs"
           >
             {PLANETARY_HOTSPOTS.map(spot => (
-              <option key={spot.id} value={spot.id} className="bg-surface-950 text-white">
+              <option key={spot.id} value={spot.id} className="bg-white text-slate-900">
                 {spot.name.split('(')[0]}
               </option>
             ))}
@@ -733,11 +742,11 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
       </div>
 
       {/* BOTTOM RIGHT: Minimalist Controls */}
-      <div className="absolute bottom-4 right-4 z-20 flex items-center space-x-1.5 bg-surface-900/90 backdrop-blur-xl p-1.5 rounded-xl border border-slate-700/80 shadow-xl">
+      <div className="absolute bottom-4 right-4 z-20 flex items-center space-x-1.5 bg-white/90 backdrop-blur-xl p-1.5 rounded-xl border border-sky-200 shadow-card">
         <button
           onClick={() => setAutoRotate(!autoRotate)}
           className={`p-2 rounded-lg text-xs transition-colors ${
-            autoRotate ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-surface-800'
+            autoRotate ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-sky-50'
           }`}
           title={autoRotate ? 'Pause Rotation' : 'Auto-Rotate Globe'}
         >
@@ -746,7 +755,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
 
         <button
           onClick={() => handleZoom(0.4)}
-          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors"
+          className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-sky-50 transition-colors"
           title="Zoom In"
         >
           <ZoomIn className="w-4 h-4" />
@@ -754,7 +763,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
 
         <button
           onClick={() => handleZoom(-0.4)}
-          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors"
+          className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-sky-50 transition-colors"
           title="Zoom Out"
         >
           <ZoomOut className="w-4 h-4" />
@@ -762,7 +771,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
 
         <button
           onClick={handleResetCamera}
-          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors"
+          className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-sky-50 transition-colors"
           title="Reset View"
         >
           <Compass className="w-4 h-4" />
@@ -779,58 +788,58 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
 
       {/* SATELLITE INSPECTION POPUP */}
       {selectedSatellite && (
-        <div className="absolute top-20 left-4 z-30 bg-surface-900/95 backdrop-blur-xl border border-slate-700 rounded-2xl p-4 shadow-2xl max-w-xs text-xs">
+        <div className="absolute top-20 left-4 z-30 bg-white/95 backdrop-blur-xl border border-sky-200 rounded-2xl p-4 shadow-elevated max-w-xs text-xs">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="font-semibold text-white flex items-center space-x-1.5">
-              <Satellite className="w-4 h-4 text-blue-400" />
+            <span className="font-semibold text-slate-900 flex items-center space-x-1.5">
+              <Satellite className="w-4 h-4 text-blue-600" />
               <span>{selectedSatellite.name}</span>
             </span>
             <button
               onClick={() => setSelectedSatellite(null)}
-              className="text-slate-400 hover:text-white text-xs px-1"
+              className="text-slate-500 hover:text-slate-900 text-xs px-1"
             >
               ✕
             </button>
           </div>
-          <div className="text-[11px] text-blue-300 font-medium mb-1">{selectedSatellite.mission}</div>
-          <p className="text-[11px] text-slate-300 leading-relaxed mb-2.5">{selectedSatellite.description}</p>
-          <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 text-[10px] text-slate-400 font-mono">
-            <div>Altitude: <span className="text-white">{selectedSatellite.altitudeKm} km</span></div>
-            <div>Speed: <span className="text-white">{selectedSatellite.speedKmS} km/s</span></div>
-            <div>Inclination: <span className="text-white">{selectedSatellite.inclinationDeg}°</span></div>
+          <div className="text-[11px] text-blue-700 font-medium mb-1">{selectedSatellite.mission}</div>
+          <p className="text-[11px] text-slate-700 leading-relaxed mb-2.5">{selectedSatellite.description}</p>
+          <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-sky-100 text-[10px] text-slate-600 font-mono">
+            <div>Altitude: <span className="text-slate-900">{selectedSatellite.altitudeKm} km</span></div>
+            <div>Speed: <span className="text-slate-900">{selectedSatellite.speedKmS} km/s</span></div>
+            <div>Inclination: <span className="text-slate-900">{selectedSatellite.inclinationDeg}°</span></div>
           </div>
-          <div className="mt-2 text-[10px] text-slate-400">
-            Sensors: <span className="text-blue-300 font-mono">{selectedSatellite.sensors}</span>
+          <div className="mt-2 text-[10px] text-slate-600">
+            Sensors: <span className="text-blue-700 font-mono">{selectedSatellite.sensors}</span>
           </div>
         </div>
       )}
 
       {/* HOVER HOTSPOT CARD */}
       {hoveredHotspot && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 pointer-events-none bg-surface-900/95 backdrop-blur-xl border border-slate-700 rounded-xl px-4 py-2 shadow-2xl text-center max-w-sm">
-          <div className="flex items-center justify-center space-x-1.5 text-xs text-amber-300 font-semibold">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 pointer-events-none bg-white/95 backdrop-blur-xl border border-sky-200 rounded-xl px-4 py-2 shadow-elevated text-center max-w-sm">
+          <div className="flex items-center justify-center space-x-1.5 text-xs text-amber-700 font-semibold">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
             <span>{hoveredHotspot.name}</span>
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">{hoveredHotspot.biome}</div>
+          <div className="text-[11px] text-slate-600 mt-0.5">{hoveredHotspot.biome}</div>
         </div>
       )}
 
       {/* Bottom Control Instruction */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none text-[11px] text-slate-400 bg-surface-950/80 backdrop-blur-md px-3.5 py-1 rounded-full border border-slate-800 hidden md:block">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none text-[11px] text-slate-700 bg-white/85 backdrop-blur-md px-3.5 py-1 rounded-full border border-sky-200 hidden xl:block">
         Drag to rotate • Scroll to zoom • Click beacons or satellites to inspect
       </div>
       </div>
 
       {/* Footer: what this picture is, the day, and how to read the colours */}
-      <div className="border-t border-sky-500/20 bg-gradient-to-r from-surface-900 via-sky-950/60 to-indigo-950/70 px-4 py-3 space-y-2" role="region" aria-label="Globe layer details">
+      <div className="border-t border-sky-200 bg-gradient-to-r from-sky-50 via-white to-indigo-50 px-4 py-3 space-y-2" role="region" aria-label="Globe layer details">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div className="min-w-0 text-xs text-slate-300">
-            <span className="font-semibold text-white">{info.label}</span>
+          <div className="min-w-0 text-xs text-slate-700">
+            <span className="font-semibold text-slate-900">{info.label}</span>
             <span className="text-slate-500"> · </span>
-            <span className="font-mono text-[11px] text-sky-300">{info.sensor}</span>
-            {entry && <span className="font-mono text-[11px] text-slate-500"> · {entry.resolution}</span>}
-            <p className="text-[11px] text-slate-400 mt-0.5 max-w-2xl">{info.description}</p>
+            <span className="font-mono text-[11px] text-sky-700">{info.sensor}</span>
+            {entry && <span className="font-mono text-[11px] text-slate-600"> · {entry.resolution}</span>}
+            <p className="text-[11px] text-slate-600 mt-0.5 max-w-2xl">{info.description}</p>
           </div>
 
           {dated && entry && (
@@ -838,7 +847,7 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
               <button
                 onClick={() => setDate(clampDate(addDays(effectiveDate, -1), entry))}
                 disabled={effectiveDate <= entry.start}
-                className="px-2 py-1 rounded-lg text-xs text-slate-300 border border-slate-700 hover:bg-surface-800 disabled:opacity-40"
+                className="px-2 py-1 rounded-lg text-xs text-slate-700 bg-white border border-sky-200 hover:bg-sky-50 disabled:opacity-40"
                 aria-label="Previous day"
               >
                 ‹
@@ -850,32 +859,32 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
                 max={entry.end}
                 onChange={e => e.target.value && setDate(clampDate(e.target.value, entry))}
                 aria-label="Day"
-                className="bg-surface-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono [color-scheme:dark]"
+                className="bg-white border border-sky-200 rounded-lg px-2 py-1 text-xs text-slate-900 font-mono [color-scheme:light]"
               />
               <button
                 onClick={() => setDate(clampDate(addDays(effectiveDate, 1), entry))}
                 disabled={effectiveDate >= entry.end}
-                className="px-2 py-1 rounded-lg text-xs text-slate-300 border border-slate-700 hover:bg-surface-800 disabled:opacity-40"
+                className="px-2 py-1 rounded-lg text-xs text-slate-700 bg-white border border-sky-200 hover:bg-sky-50 disabled:opacity-40"
                 aria-label="Next day"
               >
                 ›
               </button>
               <button
                 onClick={() => setDate(addDays(catalog.terra?.end ?? entry.end, -1))}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium text-sky-300 border border-sky-500/30 hover:bg-sky-500/10"
+                className="px-2.5 py-1 rounded-lg text-xs font-medium text-sky-700 bg-white border border-sky-300 hover:bg-sky-50"
               >
                 Latest
               </button>
             </div>
           )}
-          {!dated && info.key === 'night' && <span className="text-[11px] font-mono text-slate-400">2016 composite</span>}
+          {!dated && info.key === 'night' && <span className="text-[11px] font-mono text-slate-600">2016 composite</span>}
         </div>
 
         {entry?.ramp && (
-          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-600">
             <span>{entry.rampLow}</span>
             <span
-              className="h-2 w-40 rounded-full border border-slate-700"
+              className="h-2 w-40 rounded-full border border-sky-200"
               style={{ background: `linear-gradient(90deg, ${entry.ramp.join(', ')})` }}
               aria-hidden="true"
             />
@@ -884,17 +893,17 @@ export const InteractiveEarthGlobe: React.FC<InteractiveEarthGlobeProps> = ({
         )}
 
         {texState.status === 'error' && (
-          <p className="text-[11px] text-amber-300" role="alert">
+          <p className="text-[11px] text-amber-700" role="alert">
             {texState.message}
           </p>
         )}
 
-        <p className="text-[10px] text-slate-500">
+        <p className="text-[10px] text-slate-600">
           {dated && effectiveDate ? `Imagery of ${formatDay(effectiveDate)}. ` : ''}
           Source: NASA EOSDIS Global Imagery Browse Services (GIBS), drawn with CesiumJS. Satellite orbits are drawn at real altitude and tilt, sped up, and are not live tracks.
           NASA does not endorse this application.
         </p>
-        <div ref={creditRef} className="ep-cesium-credit text-[10px] text-slate-500" />
+        <div ref={creditRef} className="ep-cesium-credit text-[10px] text-slate-600" />
       </div>
     </div>
   );
