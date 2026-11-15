@@ -1,0 +1,29 @@
+{
+  "name": "StrataSight",
+  "short_name": "StrataSight",
+  "description": "What is changing, where, and is it real? Real NASA and NOAA data with statistical tests for the NASA Space Apps Challenge 2026.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563eb",
+  "lang": "en",
+  "categories": ["education", "science", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand/stratasight-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

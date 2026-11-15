@@ -1,0 +1,30 @@
+# dependencies and build output
+node_modules
+dist
+*.tsbuildinfo
+coverage
+.vite
+
+# secrets: never commit. Copy backend/.env.example to backend/.env.local instead.
+.env
+.env.*
+!.env.example
+*.local
+backend/ee-service-account.json
+**/*service-account*.json
+*.pem
+*.key
+
+# runtime cache of real agency responses (curated demo snapshots go elsewhere)
+data-cache/
+
+# downloaded NASA imagery snapshots (re-fetched on demand)
+backend/imagery-cache/
+
+# logs and OS/editor noise
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea
+.vscode

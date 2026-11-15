@@ -1,0 +1,4 @@
+{
+  "ignore": ["data-cache/*", "*.json"],
+  "ext": "js,mjs,cjs"
+}

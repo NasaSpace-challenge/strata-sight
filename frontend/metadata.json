@@ -1,0 +1,30 @@
+{
+  "name": "StrataSight: NASA Earth Science Data & Trend Detective",
+  "description": "Team StrataSight (Muhammad Arslan Toor, Fatima Noor). A NASA Space Apps Challenge 2026 entry that turns real NASA and NOAA satellite data into plain-language answers about how the Earth is changing, with Mann-Kendall and Sen's slope tests, a CesiumJS globe streaming NASA GIBS imagery, and multi-agency live labs.",
+  "tags": [
+    "StrataSight",
+    "NASA Space Apps Challenge 2026",
+    "Earth Science Trend Detective",
+    "NASA GIBS",
+    "MERRA-2",
+    "GPM IMERG",
+    "Mann-Kendall",
+    "Sen's slope",
+    "Earth observation",
+    "CesiumJS",
+    "climate trends"
+  ],
+  "team": {
+    "name": "StrataSight",
+    "members": [
+      {
+        "name": "Muhammad Arslan Toor",
+        "role": "AI Engineer & Researcher"
+      },
+      {
+        "name": "Fatima Noor",
+        "role": "Data Analyst & Researcher"
+      }
+    ]
+  }
+}

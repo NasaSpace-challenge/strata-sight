@@ -1,0 +1,81 @@
+{
+  "attribution": {
+    "nasa": "NASA POWER (MERRA-2 / CERES) & NASA PO.DAAC SWOT Hydrocron",
+    "canada": "Contains information licensed under the Open Government Licence \u2013 Canada."
+  },
+  "nasaPowerMerra2SampleKeys": 325,
+  "swotValidPassesCount": 262,
+  "swotSamplePasses": [
+    {
+      "reach_id": "78220000051",
+      "time_str": "2023-04-02T08:16:30Z",
+      "wse": "17.7384",
+      "width": "336.247985",
+      "slope": "3.358635e-05",
+      "dschg_c": "-999999999999.0",
+      "wse_u": "0.10909",
+      "wse_units": "m",
+      "width_units": "m",
+      "slope_units": "m/m",
+      "dschg_c_units": "m^3/s",
+      "wse_u_units": "m"
+    },
+    {
+      "reach_id": "78220000051",
+      "time_str": "2023-04-03T08:07:08Z",
+      "wse": "18.8007",
+      "width": "370.485069",
+      "slope": "0.00020328149",
+      "dschg_c": "-999999999999.0",
+      "wse_u": "0.14726",
+      "wse_units": "m",
+      "width_units": "m",
+      "slope_units": "m/m",
+      "dschg_c_units": "m^3/s",
+      "wse_u_units": "m"
+    },
+    {
+      "reach_id": "78220000051",
+      "time_str": "2023-04-04T07:57:45Z",
+      "wse": "18.7847",
+      "width": "344.482217",
+      "slope": "-1.5135e-06",
+      "dschg_c": "-999999999999.0",
+      "wse_u": "0.1108",
+      "wse_units": "m",
+      "width_units": "m",
+      "slope_units": "m/m",
+      "dschg_c_units": "m^3/s",
+      "wse_u_units": "m"
+    },
+    {
+      "reach_id": "78220000051",
+      "time_str": "2023-04-05T07:48:23Z",
+      "wse": "19.1229",
+      "width": "329.752555",
+      "slope": "-6.72622e-05",
+      "dschg_c": "-999999999999.0",
+      "wse_u": "0.10758",
+      "wse_units": "m",
+      "width_units": "m",
+      "slope_units": "m/m",
+      "dschg_c_units": "m^3/s",
+      "wse_u_units": "m"
+    },
+    {
+      "reach_id": "78220000051",
+      "time_str": "2023-04-06T07:39:01Z",
+      "wse": "18.1547",
+      "width": "336.229936",
+      "slope": "-8.9781e-05",
+      "dschg_c": "-999999999999.0",
+      "wse_u": "0.10361",
+      "wse_units": "m",
+      "width_units": "m",
+      "slope_units": "m/m",
+      "dschg_c_units": "m^3/s",
+      "wse_u_units": "m"
+    }
+  ],
+  "canadaHydrometricFeaturesCount": 360
+}
