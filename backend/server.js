@@ -5,6 +5,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import 'dotenv/config';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { GoogleAuth } from 'google-auth-library';
 import fetch from 'node-fetch';
@@ -16,6 +19,7 @@ import { seriesRouter } from './seriesRouter.js';
 import { geocodeRouter } from './geocodeRouter.js';
 import { imageryRouter, eventsRouter, mediaRouter, epicRouter } from './earthViewRouter.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json({limit: process?.env?.API_PAYLOAD_MAX_SIZE || "7mb"}));
 
@@ -61,8 +65,9 @@ app.get('/api/timeseries', rateLimit({ windowMs: 5 * 60 * 1000, max: 30, standar
   }
 });
 
-const PORT = process?.env?.API_BACKEND_PORT || 5000;
-const API_BACKEND_HOST = process?.env?.API_BACKEND_HOST || "127.0.0.1";
+// Cloud Run injects PORT and requires listening on 0.0.0.0; local dev keeps 127.0.0.1:5000.
+const PORT = process?.env?.PORT || process?.env?.API_BACKEND_PORT || 5000;
+const API_BACKEND_HOST = process?.env?.API_BACKEND_HOST || (process?.env?.PORT ? "0.0.0.0" : "127.0.0.1");
 
 const GOOGLE_CLOUD_LOCATION = process?.env?.GOOGLE_CLOUD_LOCATION;
 const GOOGLE_CLOUD_PROJECT = process?.env?.GOOGLE_CLOUD_PROJECT;
@@ -309,8 +314,22 @@ function asProxiedBodyText(body) {
 
 // Uses Google Application Default Credentials (ADC).
 // Users need to run "gcloud auth application-default login" in order to use the proxy.
+// On Vercel there is no gcloud login: set GOOGLE_SERVICE_ACCOUNT_JSON to the full
+// service-account key JSON instead.
+function readInlineGoogleCredentials() {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    console.error('GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON; falling back to ADC.');
+    return undefined;
+  }
+}
+
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+  credentials: readInlineGoogleCredentials(),
 });
 
 function escapeRegex(str) {
@@ -567,10 +586,34 @@ app.post('/api-proxy', async (req, res) => {
   }
 });
 
-const server = app.listen(PORT, API_BACKEND_HOST, () => {
-  console.log(`Vertex AI Backend listening at http://localhost:${PORT}`);
-});
+// Production: serve the built React app from this same server (one container, one origin, no CORS).
+// Location is overridable; if the folder does not exist (local dev) this is skipped and Vite serves the UI.
+const FRONTEND_DIST = process.env.FRONTEND_DIST || path.resolve(__dirname, '..', 'frontend', 'dist');
+if (fs.existsSync(path.join(FRONTEND_DIST, 'index.html'))) {
+  // Unknown API paths must stay JSON 404s instead of falling through to index.html.
+  app.use(['/api', '/api-proxy', '/ws-proxy'], (_req, res) => res.status(404).json({ error: 'Not found' }));
+  app.use(
+    express.static(FRONTEND_DIST, {
+      index: false,
+      setHeaders(res, file) {
+        // Vite emits content-hashed files under /assets; everything else (index.html, /cesium) revalidates.
+        res.setHeader(
+          'Cache-Control',
+          file.includes(`${path.sep}assets${path.sep}`) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600'
+        );
+      },
+    })
+  );
+  app.get('/{*splat}', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
+  });
+  console.log(`[StrataSight] Serving the web app from ${FRONTEND_DIST}`);
+}
 
+const server = app.listen(PORT, API_BACKEND_HOST, () => {
+  console.log(`Vertex AI Backend listening at http://${API_BACKEND_HOST}:${PORT}`);
+});
 
 const wss = new WebSocketServer({ noServer: true });
 

@@ -78,8 +78,8 @@ earthdataRouter.get('/health', (_req, res) => {
       noaaNceiCdoV2: { live: Boolean(process.env.NOAA_CDO_TOKEN), authRequired: true, envVar: 'NOAA_CDO_TOKEN' },
       nasaGesDiscDataRods: { live: Boolean(process.env.EARTHDATA_TOKEN), authRequired: true, envVar: 'EARTHDATA_TOKEN' },
       googleEarthEngine: {
-        configured: Boolean((process.env.EE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT) && process.env.EE_SERVICE_ACCOUNT_KEY_FILE),
-        envVars: ['EE_PROJECT_ID', 'EE_SERVICE_ACCOUNT_KEY_FILE']
+        configured: Boolean((process.env.EE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT) && (process.env.EE_SERVICE_ACCOUNT_KEY_FILE || process.env.EE_SERVICE_ACCOUNT_KEY_JSON)),
+        envVars: ['EE_PROJECT_ID', 'EE_SERVICE_ACCOUNT_KEY_FILE or EE_SERVICE_ACCOUNT_KEY_JSON']
       }
     }
   });

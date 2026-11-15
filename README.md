@@ -142,6 +142,24 @@ Copy `backend/.env.example` to `backend/.env.local` and fill in what you have. E
 
 Never commit `backend/.env.local` or `backend/ee-service-account.json` (both are git-ignored).
 
+## Deploy to Google Cloud Run
+
+The `Dockerfile` builds the React app and serves it, together with the API and the AI WebSocket proxy, from one container on one origin (no CORS, no rewrites).
+
+```bash
+PROJECT=your-gcp-project  REGION=europe-west4
+gcloud config set project $PROJECT
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com aiplatform.googleapis.com
+
+# build in the cloud and deploy (the first run asks to create an Artifact Registry repo)
+gcloud run deploy stratasight --source . --region $REGION --allow-unauthenticated \
+  --timeout 3600 --memory 1Gi \
+  --set-env-vars GOOGLE_CLOUD_PROJECT=$PROJECT,GOOGLE_CLOUD_LOCATION=$REGION,EE_PROJECT_ID=$PROJECT,PROXY_HEADER=oXPOjRawoER8LMDU9sHEqj4aPa-bA5Lv \
+  --set-secrets EARTHDATA_TOKEN=earthdata-token:latest,NOAA_CDO_TOKEN=noaa-cdo-token:latest,EE_SERVICE_ACCOUNT_KEY_JSON=ee-key:latest
+```
+
+Notes: Vertex AI uses the Cloud Run service account through Application Default Credentials, so grant it the **Vertex AI User** role and no key is needed. The Earth Engine key is read from `EE_SERVICE_ACCOUNT_KEY_JSON`. You can also paste plain env vars in the Cloud Run console instead of `--set-secrets`. Secrets are never baked into the image (`.dockerignore`). The disk cache is per instance and is lost on restart; the bundled `seed-cache` is the offline fallback. Run locally with `docker run --rm -p 8080:8080 --env-file backend/.env.local stratasight`.
+
 ## Commands
 
 | Command | Does |

@@ -23,6 +23,8 @@ const PROJECT_ID =
     process.env.GOOGLE_CLOUD_PROJECT;
 
 const KEY_FILE = process.env.EE_SERVICE_ACCOUNT_KEY_FILE;
+// Serverless hosts (Vercel) have no key file: paste the whole key JSON into this variable instead.
+const KEY_JSON = process.env.EE_SERVICE_ACCOUNT_KEY_JSON;
 
 let initializationPromise = null;
 
@@ -85,26 +87,35 @@ async function initializeEarthEngine() {
                 );
             }
 
-            if (!KEY_FILE) {
-                throw new Error(
-                    'Missing EE_SERVICE_ACCOUNT_KEY_FILE.'
+            let privateKey;
+            if (KEY_JSON) {
+                try {
+                    privateKey = JSON.parse(KEY_JSON);
+                } catch {
+                    throw new Error('EE_SERVICE_ACCOUNT_KEY_JSON is not valid JSON.');
+                }
+            } else {
+                if (!KEY_FILE) {
+                    throw new Error(
+                        'Missing EE_SERVICE_ACCOUNT_KEY_FILE or EE_SERVICE_ACCOUNT_KEY_JSON.'
+                    );
+                }
+
+                const cwdCandidate = path.resolve(process.cwd(), KEY_FILE);
+                const keyPath = fs.existsSync(cwdCandidate)
+                    ? cwdCandidate
+                    : path.resolve(BACKEND_DIR, KEY_FILE);
+
+                if (!fs.existsSync(keyPath)) {
+                    throw new Error(
+                        `Earth Engine service account key not found: ${keyPath}`
+                    );
+                }
+
+                privateKey = JSON.parse(
+                    fs.readFileSync(keyPath, 'utf8')
                 );
             }
-
-            const cwdCandidate = path.resolve(process.cwd(), KEY_FILE);
-            const keyPath = fs.existsSync(cwdCandidate)
-                ? cwdCandidate
-                : path.resolve(BACKEND_DIR, KEY_FILE);
-
-            if (!fs.existsSync(keyPath)) {
-                throw new Error(
-                    `Earth Engine service account key not found: ${keyPath}`
-                );
-            }
-
-            const privateKey = JSON.parse(
-                fs.readFileSync(keyPath, 'utf8')
-            );
 
             if (!privateKey || !privateKey.client_email || !privateKey.private_key) {
                 const err = new Error(
